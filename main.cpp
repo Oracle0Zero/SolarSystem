@@ -23,10 +23,11 @@ void setupVertices();
 void init(GLFWwindow* window);
 void display(GLFWwindow* window, double currentTime);
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void GenerateBuffers(GLuint VAO_ID, GLuint VBO_INITIAL_ID, bool is_element_array_buffer=false);
+void GenerateBuffers(GLuint* VAO, GLuint* VBO, GLuint VAO_INITIAL_INDEX, GLuint VBO_INITIAL_INDEX, bool is_element_array_buffer=false);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
+void GenerateBuffersOrbit(GLuint* VAO, GLuint* VBO);
 
 float cameraX, cameraY, cameraZ;
 float sphLocX, sphLocY, sphLocZ;
@@ -36,7 +37,7 @@ const unsigned int SCR_HEIGHT = 600;
 
 
 // camera
-Camera camera(glm::vec3(0.0f, 0.0f, 15.0f));
+Camera camera(glm::vec3(0.0f, 0.0f, 200.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -58,6 +59,8 @@ glm::mat4 pMat, vMat, mMat, mvMat;
 
 float tf = 0.0f;
 GLuint sunTexture, earthTexture, moonTexture, mercuryTexture;
+GLuint venusTexture, marsTexture, jupiterTexture, saturnTexture;
+GLuint urnausTexture, neptuneTexture;
 
 
 std::vector<int> ind;
@@ -73,24 +76,57 @@ std::stack<glm::mat4> mStack;
 
 Sphere sphere(156);
 
-Torus orbit(1.0f, 3.0f, 48);
+
 
 constexpr float sun_radius = 695700000;
-constexpr float sun_size = 1.0f;
+constexpr float sun_size = 50.0f;
 
 constexpr float earth_radius = 6378.137f;
-constexpr float earth_size = earth_radius * (sun_size / sun_radius);
+//constexpr float earth_size = earth_radius * (sun_size / sun_radius);
+constexpr float earth_size = 5.0f;
 constexpr float earth_distance_from_sun = 150196428.0f;
-constexpr float earth_distance = 50.0f;
+constexpr float earth_distance = 250.0f;
+
+constexpr float moon_radius = 1738.1f;
+constexpr float moon_size = moon_radius * (earth_size / earth_radius);
 
 constexpr float mercury_radius = 2439.137f;
-constexpr float mercury_size = mercury_radius * (sun_size / sun_radius);
+constexpr float mercury_size = mercury_radius * (earth_size / earth_radius);
 constexpr float mercury_distance_from_sun = 58000000.0f;
 constexpr float mercury_distance = mercury_distance_from_sun * (earth_distance / earth_distance_from_sun);
 
-constexpr float moon_radius = 1738.1f;
-constexpr float moon_size = moon_radius * (sun_size / sun_radius);
+constexpr float venus_radius = 6051.137f;
+constexpr float venus_size = venus_radius * (earth_size / earth_radius);
+constexpr float venus_distance_from_sun = 108000000.0f;
+constexpr float venus_distance = venus_distance_from_sun * (earth_distance / earth_distance_from_sun);
 
+constexpr float mars_radius = 3396.2f;
+constexpr float mars_size = mars_radius * (earth_size / earth_radius);
+constexpr float mars_distance_from_sun = 228000000.0f;
+constexpr float mars_distance = mars_distance_from_sun * (earth_distance / earth_distance_from_sun);
+
+constexpr float jupiter_radius = 6051.137f;
+constexpr float jupiter_size = jupiter_radius * (earth_size / earth_radius);
+constexpr float jupiter_distance_from_sun = 108000000.0f;
+constexpr float jupiter_distance = jupiter_distance_from_sun * (earth_distance / earth_distance_from_sun);
+
+constexpr float saturn_radius = 6051.137f;
+constexpr float saturn_size = saturn_radius * (earth_size / earth_radius);
+constexpr float saturn_distance_from_sun = 108000000.0f;
+constexpr float saturn_distance = saturn_distance_from_sun * (earth_distance / earth_distance_from_sun);
+
+constexpr float uranus_radius = 6051.137f;
+constexpr float uranus_size = uranus_radius * (earth_size / earth_radius);
+constexpr float uranus_distance_from_sun = 108000000.0f;
+constexpr float uranus_distance = uranus_distance_from_sun * (earth_distance / earth_distance_from_sun);
+
+constexpr float neptune_radius = 6051.137f;
+constexpr float neptune_size = neptune_radius * (earth_size / earth_radius);
+constexpr float neptune_distance_from_sun = 108000000.0f;
+constexpr float neptune_distance = neptune_distance_from_sun * (earth_distance / earth_distance_from_sun);
+
+
+Torus orbit(mars_distance, 0.5f, 96);
 
 int main()
 {
@@ -161,7 +197,8 @@ void setupVertices()
 	glGenVertexArrays(numVAOs, vao);
 	glGenBuffers(numVBOs, vbo);
 
-	GenerateBuffers(vao[0], vbo[0]);
+	GenerateBuffers(vao, vbo, 0, 0, true);
+
 
 	ind.clear();
 	vert.clear();
@@ -171,10 +208,14 @@ void setupVertices()
 	tvalues.clear();
 	nvalues.clear();
 
+
+
 	ind = orbit.getIndices();
 	vert = orbit.getVertices();
 	tex = orbit.getTexCoords();
 	norm = orbit.getNormals();
+
+
 
 	for (int i = 0; i < orbit.getNumVertices(); i++) {
 		pvalues.push_back(vert[i].x);
@@ -187,36 +228,67 @@ void setupVertices()
 		nvalues.push_back(norm[i].z);
 	}
 
-	GenerateBuffers(vao[1], vbo[3], true);
+
+	GenerateBuffers(vao, vbo, 1, 3, true);
 
 }
 
-void GenerateBuffers(GLuint VAO_ID, GLuint VBO_INITIAL_ID, bool is_element_array_buffer)
+void GenerateBuffersOrbit(GLuint* VAO, GLuint* VBO)
 {
-
-	glBindVertexArray(VAO_ID);
+	glBindVertexArray(VAO[1]);
 	
 	// Put the vertices into buffer #0
-	glBindBuffer(GL_ARRAY_BUFFER, VBO_INITIAL_ID);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO[3]);
 	glBufferData(GL_ARRAY_BUFFER, pvalues.size()*4, &pvalues[0], GL_STATIC_DRAW);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(0);
 
 	// Put the Texture Coordinates into buffer #1
-	glBindBuffer(GL_ARRAY_BUFFER, VBO_INITIAL_ID + 1);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO[4]);
 	glBufferData(GL_ARRAY_BUFFER, tvalues.size()*4, &tvalues[0], GL_STATIC_DRAW);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(1);
 
 	// Put the Normals into buffer #2
-	glBindBuffer(GL_ARRAY_BUFFER, VBO_INITIAL_ID + 2);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO[5]);
+	glBufferData(GL_ARRAY_BUFFER, nvalues.size()*4, &nvalues[0], GL_STATIC_DRAW);
+
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, VBO[6]);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, ind.size() * 4, &ind[0], GL_STATIC_DRAW);
+	
+}
+
+void GenerateBuffers(GLuint* VAO, GLuint* VBO, GLuint VAO_INITIAL_INDEX, GLuint VBO_INITIAL_INDEX, bool is_element_array_buffer)
+{
+
+	glBindVertexArray(*(VAO + (VAO_INITIAL_INDEX + 0)));
+	
+
+	// Put the vertices into buffer #0
+	glBindBuffer(GL_ARRAY_BUFFER, *(VBO + (VBO_INITIAL_INDEX + 0)));
+	glBufferData(GL_ARRAY_BUFFER, pvalues.size()*4, &pvalues[0], GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(0);
+
+	// Put the Texture Coordinates into buffer #1
+	glBindBuffer(GL_ARRAY_BUFFER, *(VBO + (VBO_INITIAL_INDEX + 1)));
+	glBufferData(GL_ARRAY_BUFFER, tvalues.size()*4, &tvalues[0], GL_STATIC_DRAW);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(1);
+
+	// Put the Normals into buffer #2
+	glBindBuffer(GL_ARRAY_BUFFER, *(VBO + (VBO_INITIAL_INDEX + 2)));
 	glBufferData(GL_ARRAY_BUFFER, nvalues.size()*4, &nvalues[0], GL_STATIC_DRAW);
 
 	if(is_element_array_buffer == true)
 	{
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, VBO_INITIAL_ID + 3);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, *(VBO + (VBO_INITIAL_INDEX + 3)));
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, ind.size() * 4, &ind[0], GL_STATIC_DRAW);
+
 	}
+
+	glBindVertexArray(0);
 }
 
 void init(GLFWwindow* window)
@@ -227,7 +299,7 @@ void init(GLFWwindow* window)
 	aspect = (float)width / (float)height;
 	pMat = glm::perspective(1.0472f, aspect, 0.1f, 1000.0f);
 
-	cameraX = 0.0f; cameraY = 0.0f; cameraZ = 6.0f;
+	cameraX = 0.0f; cameraY = 0.0f; cameraZ = 2.0f;
 	sphLocX = 0.0f; sphLocY = 0.0f; sphLocZ = 0.0f;
 
 	//vMat = glm::translate(glm::mat4(1.0f), glm::vec3(-cameraX, -cameraY, -cameraZ));
@@ -239,6 +311,12 @@ void init(GLFWwindow* window)
 	earthTexture = Utils::loadTexture("earth.jpg");
 	moonTexture = Utils::loadTexture("moon.jpg");
 	mercuryTexture = Utils::loadTexture("mercury.jpg");
+	venusTexture = Utils::loadTexture("venus.jpg");
+	marsTexture = Utils::loadTexture("mars.jpg");
+	jupiterTexture = Utils::loadTexture("jupiter.jpg");
+	saturnTexture = Utils::loadTexture("saturn.jpg");
+	urnausTexture = Utils::loadTexture("uranus.jpg");
+	neptuneTexture = Utils::loadTexture("neptune.jpg");
 
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LEQUAL);
@@ -274,6 +352,23 @@ void display(GLFWwindow* window, double currentTime)
 
 	// Push View Matrix onto the stack
 	mStack.push(vMat);
+
+	// Orbit
+	//vMat = glm::translate(glm::mat4(1.0f), glm::vec3(-cameraX, -cameraY, -cameraZ));
+	mMat = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0));
+	//mMat = glm::rotate(mMat, toRadians(30.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	mvMat = vMat * mMat;
+
+	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mvMat));
+	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
+
+	glBindVertexArray(vao[1]);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, sunTexture);
+
+
+	glDrawElements(GL_TRIANGLES, orbit.getIndices().size(), GL_UNSIGNED_INT, 0);
 
 	// --- Sun
 	mStack.push(mStack.top());
@@ -346,18 +441,42 @@ void display(GLFWwindow* window, double currentTime)
 	glDrawArrays(GL_TRIANGLES, 0, sphere.getNumIndices());
 	mStack.pop();
 
-	// Orbit
-	glm::mat4 orbitmMat = glm::translate(glm::mat4(1.0f), glm::vec3(1.0f, 1.0f, 1.0f)); // Ring Location
-	glm::mat4 orbitmvMat = vMat * mMat;
-	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mvMat));
+	// --- Venus
+	mStack.pop(); // Remove Mercury's Position
+	mStack.push(mStack.top());
+	mStack.top() *= glm::translate(glm::mat4(1.0f), glm::vec3(sin((float)currentTime*0.2f)*venus_distance, 0.0f, cos((float)currentTime*0.2f)*venus_distance));
+	mStack.push(mStack.top());
+	mStack.top() *= glm::rotate(glm::mat4(1.0f), (float)currentTime, glm::vec3(0.0, 1.0, 0.0)) * glm::scale(glm::mat4(1.0f), venus_size * glm::vec3(1.0f, 1.0f, 1.0f)); // Planet Rotation
+
+	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mStack.top()));
 	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
 
-	glBindVertexArray(vao[1]);
+	glBindVertexArray(vao[0]);
 
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, earthTexture);
+	glBindTexture(GL_TEXTURE_2D, venusTexture);
 
-	glDrawElements(GL_TRIANGLES, orbit.getIndices().size(), GL_UNSIGNED_INT, 0);
+	glDrawArrays(GL_TRIANGLES, 0, sphere.getNumIndices());
+	mStack.pop();
+
+	// --- Mars
+	mStack.pop(); // Remove Mercury's Position
+	mStack.push(mStack.top());
+	mStack.top() *= glm::translate(glm::mat4(1.0f), glm::vec3(sin((float)currentTime*0.2f)*mars_distance, 0.0f, cos((float)currentTime*0.2f)*mars_distance));
+	mStack.push(mStack.top());
+	mStack.top() *= glm::rotate(glm::mat4(1.0f), (float)currentTime, glm::vec3(0.0, 1.0, 0.0)) * glm::scale(glm::mat4(1.0f), mars_size * glm::vec3(1.0f, 1.0f, 1.0f)); // Planet Rotation
+
+	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mStack.top()));
+	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
+
+	glBindVertexArray(vao[0]);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, marsTexture);
+
+	glDrawArrays(GL_TRIANGLES, 0, sphere.getNumIndices());
+	mStack.pop();
+
 
 
 	// Remove Last Planet's Position, Sun's Position and View Matrix
