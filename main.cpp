@@ -25,8 +25,8 @@ enum Planets
 	NEPTUNE
 };
 
-#define numVAOs 2
-#define numVBOs 7
+#define numVAOs 3
+#define numVBOs 8
 #define NUMBER_OF_PLANETS 8
 
 
@@ -57,9 +57,10 @@ bool firstMouse = true;
 float deltaTime = 0.0f;	// time between current frame and last frame
 float lastFrame = 0.0f;
 
-GLuint renderingProgram, renderingOrbitProgram;
+GLuint renderingProgram, renderingOrbitProgram, skyboxShader;
 GLuint vao[numVAOs];
 GLuint vbo[numVBOs];
+GLuint skyboxVAO, skyboxVBO;
 
 // allocate variables use in display() function, so that they won't need to be
 // allocated during rendering
@@ -72,6 +73,7 @@ float tf = 0.0f;
 GLuint sunTexture, earthTexture, moonTexture, mercuryTexture;
 GLuint venusTexture, marsTexture, jupiterTexture, saturnTexture;
 GLuint urnausTexture, neptuneTexture;
+GLuint cubemapTexture;
 
 
 std::vector<int> ind;
@@ -102,6 +104,7 @@ constexpr float earth_revolution_speed = 0.3f;
 
 constexpr float moon_radius = 1738.1f;
 constexpr float moon_size = moon_radius * (earth_size / earth_radius);
+constexpr float moon_distance = 15.0f;
 
 constexpr float mercury_radius = 2439.137f;
 constexpr float mercury_size = mercury_radius * (earth_size / earth_radius);
@@ -259,6 +262,58 @@ void setupVertices()
 
 	GenerateBuffers(vao, vbo, 1, 3, true);
 
+	float skyboxVertices[] = {
+		// positions          
+		-1.0f,  1.0f, -1.0f,
+		-1.0f, -1.0f, -1.0f,
+		1.0f, -1.0f, -1.0f,
+		1.0f, -1.0f, -1.0f,
+		1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+
+		-1.0f, -1.0f,  1.0f,
+		-1.0f, -1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f,  1.0f,
+		-1.0f, -1.0f,  1.0f,
+
+		1.0f, -1.0f, -1.0f,
+		1.0f, -1.0f,  1.0f,
+		1.0f,  1.0f,  1.0f,
+		1.0f,  1.0f,  1.0f,
+		1.0f,  1.0f, -1.0f,
+		1.0f, -1.0f, -1.0f,
+
+		-1.0f, -1.0f,  1.0f,
+		-1.0f,  1.0f,  1.0f,
+		1.0f,  1.0f,  1.0f,
+		1.0f,  1.0f,  1.0f,
+		1.0f, -1.0f,  1.0f,
+		-1.0f, -1.0f,  1.0f,
+
+		-1.0f,  1.0f, -1.0f,
+		1.0f,  1.0f, -1.0f,
+		1.0f,  1.0f,  1.0f,
+		1.0f,  1.0f,  1.0f,
+		-1.0f,  1.0f,  1.0f,
+		-1.0f,  1.0f, -1.0f,
+
+		-1.0f, -1.0f, -1.0f,
+		-1.0f, -1.0f,  1.0f,
+		1.0f, -1.0f, -1.0f,
+		1.0f, -1.0f, -1.0f,
+		-1.0f, -1.0f,  1.0f,
+		1.0f, -1.0f,  1.0f
+	};
+
+    glGenVertexArrays(1, &vao[2]);
+    glGenBuffers(1, &vbo[7]);
+    glBindVertexArray(vao[2]);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo[7]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 }
 
 void GenerateBuffersOrbit(GLuint* VAO, GLuint* VBO)
@@ -323,6 +378,7 @@ void init(GLFWwindow* window)
 {
 	renderingProgram = Utils::createShaderProgram("vertShader.glsl", "fragShader.glsl");
 	renderingOrbitProgram = Utils::createShaderProgram("vertShader.glsl", "fragShader_Orbit.glsl");
+	skyboxShader = Utils::createShaderProgram("vertShader_Skybox.glsl", "fragShader_Skybox.glsl");
 
 	glfwGetFramebufferSize(window, &width, &height);
 	aspect = (float)width / (float)height;
@@ -336,16 +392,42 @@ void init(GLFWwindow* window)
 	setupVertices();
 
 
-	sunTexture = Utils::loadTexture("sun.jpg");
-	earthTexture = Utils::loadTexture("earth.jpg");
-	moonTexture = Utils::loadTexture("moon.jpg");
-	mercuryTexture = Utils::loadTexture("mercury.jpg");
-	venusTexture = Utils::loadTexture("venus.jpg");
-	marsTexture = Utils::loadTexture("mars.jpg");
-	jupiterTexture = Utils::loadTexture("jupiter.jpg");
-	saturnTexture = Utils::loadTexture("saturn.jpg");
-	urnausTexture = Utils::loadTexture("uranus.jpg");
-	neptuneTexture = Utils::loadTexture("neptune.jpg");
+	sunTexture = Utils::loadTexture("./textures/sun.jpg");
+	earthTexture = Utils::loadTexture("./textures/earth.jpg");
+	moonTexture = Utils::loadTexture("./textures/moon.jpg");
+	mercuryTexture = Utils::loadTexture("./textures/mercury.jpg");
+	venusTexture = Utils::loadTexture("./textures/venus.jpg");
+	marsTexture = Utils::loadTexture("./textures/mars.jpg");
+	jupiterTexture = Utils::loadTexture("./textures/jupiter.jpg");
+	saturnTexture = Utils::loadTexture("./textures/saturn.jpg");
+	urnausTexture = Utils::loadTexture("./textures/uranus.jpg");
+	neptuneTexture = Utils::loadTexture("./textures/neptune.jpg");
+
+	/*
+	std::vector<std::string> faces
+	{
+		"./textures/skybox/Stars/Stars_right.jpg",
+		"./textures/skybox/Stars/Stars_left.jpg",
+		"./textures/skybox/Stars/Stars_top.jpg",
+		"./textures/skybox/Stars/Stars_bottom.jpg",
+		"./textures/skybox//Stars/Stars_front.jpg",
+		"./textures/skybox/Stars/Stars_back.jpg"
+	};
+	*/
+	
+	std::vector<std::string> faces
+	{
+		"./textures/skybox/Nebula/Nebula_right.jpg",
+		"./textures/skybox/Nebula/Nebula_left.jpg",
+		"./textures/skybox/Nebula/Nebula_top.jpg",
+		"./textures/skybox/Nebula/Nebula_bottom.jpg",
+		"./textures/skybox//Nebula/Nebula_front.jpg",
+		"./textures/skybox/Nebula/Nebula_back.jpg"
+	};
+	
+
+	cubemapTexture = Utils::loadCubemap(faces);
+
 
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LEQUAL);
@@ -365,6 +447,8 @@ void init(GLFWwindow* window)
 		RandomOrbitLocationMultiplier.push_back(r);
 	}
 
+	glUseProgram(skyboxShader);
+	glUniform1i(glGetUniformLocation(skyboxShader, "skybox"), 0); 
 }
 
 void display(GLFWwindow* window, double currentTime)
@@ -383,13 +467,35 @@ void display(GLFWwindow* window, double currentTime)
 	glClear(GL_DEPTH_BUFFER_BIT);
 	glClear(GL_COLOR_BUFFER_BIT);
 
+	
+	// camera/view transformation
+    glm::mat4 vMat = camera.GetViewMatrix();
+	vMat = glm::mat4(glm::mat3(camera.GetViewMatrix())); // remove translation from the view matrix
+	// draw cube map
+	glUseProgram(skyboxShader);
+	vLoc = glGetUniformLocation(skyboxShader, "vMat");
+	glUniformMatrix4fv(vLoc, 1, GL_FALSE, glm::value_ptr(vMat));
+	projLoc = glGetUniformLocation(skyboxShader, "pMat");
+	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
+	glBindVertexArray(vao[2]);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo[7]);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(0);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+	glEnable(GL_CULL_FACE);
+	glFrontFace(GL_CCW);	// cube is CW, but we are viewing the inside
+	glDisable(GL_DEPTH_TEST);
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+	glEnable(GL_DEPTH_TEST);
+
 	glUseProgram(renderingProgram);
 
 	mvLoc = glGetUniformLocation(renderingProgram, "mv_matrix");
 	projLoc = glGetUniformLocation(renderingProgram, "proj_matrix");
 
-	// camera/view transformation
-    glm::mat4 vMat = camera.GetViewMatrix();
+
+	vMat = camera.GetViewMatrix();	
 
 	// Push View Matrix onto the stack
 	mStack.push(vMat);
@@ -424,7 +530,7 @@ void display(GLFWwindow* window, double currentTime)
 
 	// --- Moon
 	mStack.push(mStack.top());
-	mStack.top() *= glm::translate(glm::mat4(1.0f), glm::vec3(sin((float)currentTime)*3.0f, 0.0f, cos((float)currentTime)*3.0f));
+	mStack.top() *= glm::translate(glm::mat4(1.0f), glm::vec3(sin((float)currentTime)*moon_distance, 0.0f, cos((float)currentTime)*moon_distance));
 	mStack.push(mStack.top());
 	mStack.top() *= glm::rotate(glm::mat4(1.0f), (float)currentTime, glm::vec3(0.0, 1.0, 0.0)) * glm::scale(glm::mat4(1.0f), moon_size * glm::vec3(1.0f, 1.0f, 1.0f)); // Planet Rotation
 	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mStack.top()));
@@ -594,7 +700,7 @@ void display(GLFWwindow* window, double currentTime)
 	glBindTexture(GL_TEXTURE_2D, sunTexture);
 	glDrawElements(GL_TRIANGLES, orbit.getIndices().size(), GL_UNSIGNED_INT, 0);
 
-		// Jupiter Orbit
+	// Jupiter Orbit
 	mMat = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0)) * glm::scale(glm::mat4(1.0f), (jupiter_distance/earth_distance) * glm::vec3(1.0f, 1.0f, 1.0f));
 	mvMat = vMat * mMat;
 	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mvMat));
@@ -635,7 +741,9 @@ void display(GLFWwindow* window, double currentTime)
 	glDrawElements(GL_TRIANGLES, orbit.getIndices().size(), GL_UNSIGNED_INT, 0);
 
 
-
+	
+	
+	
 
 }
 

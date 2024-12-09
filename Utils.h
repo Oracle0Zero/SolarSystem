@@ -26,7 +26,7 @@ public:
 	static GLuint createShaderProgram(const char *vp, const char *tCS, const char* tES, const char *fp);
 	static GLuint createShaderProgram(const char *vp, const char *tCS, const char* tES, char *gp, const char *fp);
 	static GLuint loadTexture(const char *texImagePath);
-	static GLuint loadCubeMap(const char *mapDir);
+	static GLuint loadCubemap(std::vector<std::string> faces);
 
 	static float* goldAmbient();
 	static float* goldDiffuse();
