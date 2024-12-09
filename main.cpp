@@ -12,6 +12,7 @@
 #include "camera.h"
 #include "Torus.h"
 #include <stack>
+#include "Constants.h"
 
 enum Planets
 {
@@ -39,6 +40,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
 void GenerateBuffersOrbit(GLuint* VAO, GLuint* VBO);
+void DrawOrbits(glm::mat4& vMat);
 
 float cameraX, cameraY, cameraZ;
 float sphLocX, sphLocY, sphLocZ;
@@ -91,73 +93,10 @@ Sphere sphere(156);
 
 
 
-constexpr float sun_radius = 695700000;
-constexpr float sun_size = 100.0f; // --- 
-
-constexpr float earth_radius = 6378.137f;
-//constexpr float earth_size = earth_radius * (sun_size / sun_radius);
-constexpr float earth_size = 10.0f; // --
-constexpr float earth_distance_from_sun = 150196428.0f;
-constexpr float earth_distance = 500.0f; // --
-constexpr float earth_year = 365.0f;
-constexpr float earth_revolution_speed = 0.3f;
-
-constexpr float moon_radius = 1738.1f;
-constexpr float moon_size = moon_radius * (earth_size / earth_radius);
-constexpr float moon_distance = 15.0f;
-
-constexpr float mercury_radius = 2439.137f;
-constexpr float mercury_size = mercury_radius * (earth_size / earth_radius);
-constexpr float mercury_distance_from_sun = 58000000.0f;
-constexpr float mercury_distance = mercury_distance_from_sun * (earth_distance / earth_distance_from_sun);
-constexpr float mercury_year = 88.0f;
-constexpr float mercury_revolution_speed = earth_revolution_speed * (earth_year / mercury_year);
-
-constexpr float venus_radius = 6051.137f;
-constexpr float venus_size = venus_radius * (earth_size / earth_radius);
-constexpr float venus_distance_from_sun = 108000000.0f;
-constexpr float venus_distance = venus_distance_from_sun * (earth_distance / earth_distance_from_sun);
-constexpr float venus_year = 225.0f;
-constexpr float venus_revolution_speed = earth_revolution_speed * (earth_year / venus_year);
-
-constexpr float mars_radius = 3396.2f;
-constexpr float mars_size = mars_radius * (earth_size / earth_radius);
-constexpr float mars_distance_from_sun = 228000000.0f;
-constexpr float mars_distance = mars_distance_from_sun * (earth_distance / earth_distance_from_sun);
-constexpr float mars_year = 687.0f;
-constexpr float mars_revolution_speed = earth_revolution_speed * (earth_year / mars_year);
-
-constexpr float jupiter_radius = 69911.0f;
-constexpr float jupiter_size = jupiter_radius * (earth_size / earth_radius);
-constexpr float jupiter_distance_from_sun = 778000000.0f;
-constexpr float jupiter_distance = jupiter_distance_from_sun * (earth_distance / earth_distance_from_sun);
-constexpr float jupiter_year = 4333.0f;
-constexpr float jupiter_revolution_speed = earth_revolution_speed * (earth_year / jupiter_year);
-
-constexpr float saturn_radius = 60250.0f;
-constexpr float saturn_size = saturn_radius * (earth_size / earth_radius);
-constexpr float saturn_distance_from_sun = 1400000000.0f;
-constexpr float saturn_distance = saturn_distance_from_sun * (earth_distance / earth_distance_from_sun);
-constexpr float saturn_year = 10756.0f;
-constexpr float saturn_revolution_speed = earth_revolution_speed * (earth_year / saturn_year);
-
-constexpr float uranus_radius = 25559.0f;
-constexpr float uranus_size = uranus_radius * (earth_size / earth_radius);
-constexpr float uranus_distance_from_sun = 2900000000.0f;
-constexpr float uranus_distance = uranus_distance_from_sun * (earth_distance / earth_distance_from_sun);
-constexpr float uranus_year = 30687.0f;
-constexpr float uranus_revolution_speed = earth_revolution_speed * (earth_year / uranus_year);
-
-constexpr float neptune_radius = 24764.0f;
-constexpr float neptune_size = neptune_radius * (earth_size / earth_radius);
-constexpr float neptune_distance_from_sun = 4500000000.0f;
-constexpr float neptune_distance = neptune_distance_from_sun * (earth_distance / earth_distance_from_sun);
-constexpr float neptune_year = 60190.0f;
-constexpr float neptune_revolution_speed = earth_revolution_speed * (earth_year / neptune_year);
 
 std::vector<float> RandomOrbitLocationMultiplier;
 
-Torus orbit(earth_distance, 1.0f, 150);
+Torus orbit(Constants::earth_distance, 1.0f, 150);
 
 int main()
 {
@@ -469,7 +408,7 @@ void display(GLFWwindow* window, double currentTime)
 
 	
 	// camera/view transformation
-    glm::mat4 vMat = camera.GetViewMatrix();
+	vMat = camera.GetViewMatrix();
 	vMat = glm::mat4(glm::mat3(camera.GetViewMatrix())); // remove translation from the view matrix
 	// draw cube map
 	glUseProgram(skyboxShader);
@@ -504,7 +443,7 @@ void display(GLFWwindow* window, double currentTime)
 	mStack.push(mStack.top());
 	mStack.top() *= glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)); // Sun Position
 	mStack.push(mStack.top());
-	mStack.top() *= glm::rotate(glm::mat4(1.0f), (float)currentTime, glm::vec3(0.0f, 1.0f, 0.0f)) * glm::scale(glm::mat4(1.0f), sun_size * glm::vec3(1.0f, 1.0f, 1.0f)); // Sun Position and Scaling
+	mStack.top() *= glm::rotate(glm::mat4(1.0f), (float)currentTime, glm::vec3(0.0f, 1.0f, 0.0f)) * glm::scale(glm::mat4(1.0f), Constants::sun_size * glm::vec3(1.0f, 1.0f, 1.0f)); // Sun Position and Scaling
 	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mStack.top()));
 	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
 	glBindVertexArray(vao[0]);
@@ -515,9 +454,9 @@ void display(GLFWwindow* window, double currentTime)
 
 	// --- Earth
 	mStack.push(mStack.top());
-	mStack.top() *= glm::translate(glm::mat4(1.0f), glm::vec3(sin((float)(RandomOrbitLocationMultiplier[Planets::EARTH] + currentTime)*earth_revolution_speed)*earth_distance, 0.0f, cos((float)((RandomOrbitLocationMultiplier[Planets::EARTH] + currentTime))*earth_revolution_speed)*earth_distance));
+	mStack.top() *= glm::translate(glm::mat4(1.0f), glm::vec3(sin((float)(RandomOrbitLocationMultiplier[Planets::EARTH] + currentTime)*Constants::earth_revolution_speed)*Constants::earth_distance, 0.0f, cos((float)((RandomOrbitLocationMultiplier[Planets::EARTH] + currentTime))*Constants::earth_revolution_speed)*Constants::earth_distance));
 	mStack.push(mStack.top());
-	mStack.top() *= glm::rotate(glm::mat4(1.0f), (float)currentTime, glm::vec3(0.0, 1.0, 0.0)) * glm::scale(glm::mat4(1.0f), earth_size * glm::vec3(1.0f, 1.0f, 1.0f)); // Planet Rotation
+	mStack.top() *= glm::rotate(glm::mat4(1.0f), (float)currentTime, glm::vec3(0.0, 1.0, 0.0)) * glm::scale(glm::mat4(1.0f), Constants::earth_size * glm::vec3(1.0f, 1.0f, 1.0f)); // Planet Rotation
 	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mStack.top()));
 	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
 	glBindVertexArray(vao[0]);
@@ -530,9 +469,9 @@ void display(GLFWwindow* window, double currentTime)
 
 	// --- Moon
 	mStack.push(mStack.top());
-	mStack.top() *= glm::translate(glm::mat4(1.0f), glm::vec3(sin((float)currentTime)*moon_distance, 0.0f, cos((float)currentTime)*moon_distance));
+	mStack.top() *= glm::translate(glm::mat4(1.0f), glm::vec3(sin((float)currentTime)*Constants::moon_distance, 0.0f, cos((float)currentTime)*Constants::moon_distance));
 	mStack.push(mStack.top());
-	mStack.top() *= glm::rotate(glm::mat4(1.0f), (float)currentTime, glm::vec3(0.0, 1.0, 0.0)) * glm::scale(glm::mat4(1.0f), moon_size * glm::vec3(1.0f, 1.0f, 1.0f)); // Planet Rotation
+	mStack.top() *= glm::rotate(glm::mat4(1.0f), (float)currentTime, glm::vec3(0.0, 1.0, 0.0)) * glm::scale(glm::mat4(1.0f), Constants::moon_size * glm::vec3(1.0f, 1.0f, 1.0f)); // Planet Rotation
 	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mStack.top()));
 	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
 	glBindVertexArray(vao[0]);
@@ -545,9 +484,9 @@ void display(GLFWwindow* window, double currentTime)
 	mStack.pop(); // Remove Moon's Position
 	mStack.pop(); // Remove Earth's Position
 	mStack.push(mStack.top());
-	mStack.top() *= glm::translate(glm::mat4(1.0f), glm::vec3(sin((float)(RandomOrbitLocationMultiplier[Planets::MERCURY] + currentTime)*mercury_revolution_speed)*mercury_distance, 0.0f, cos((float)(RandomOrbitLocationMultiplier[Planets::MERCURY] + currentTime)*mercury_revolution_speed)*mercury_distance));
+	mStack.top() *= glm::translate(glm::mat4(1.0f), glm::vec3(sin((float)(RandomOrbitLocationMultiplier[Planets::MERCURY] + currentTime)*Constants::mercury_revolution_speed)*Constants::mercury_distance, 0.0f, cos((float)(RandomOrbitLocationMultiplier[Planets::MERCURY] + currentTime)*Constants::mercury_revolution_speed)*Constants::mercury_distance));
 	mStack.push(mStack.top());
-	mStack.top() *= glm::rotate(glm::mat4(1.0f), (float)currentTime, glm::vec3(0.0, 1.0, 0.0)) * glm::scale(glm::mat4(1.0f), mercury_size * glm::vec3(1.0f, 1.0f, 1.0f)); // Planet Rotation
+	mStack.top() *= glm::rotate(glm::mat4(1.0f), (float)currentTime, glm::vec3(0.0, 1.0, 0.0)) * glm::scale(glm::mat4(1.0f), Constants::mercury_size * glm::vec3(1.0f, 1.0f, 1.0f)); // Planet Rotation
 	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mStack.top()));
 	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
 	glBindVertexArray(vao[0]);
@@ -560,9 +499,9 @@ void display(GLFWwindow* window, double currentTime)
 	// --- Venus
 	mStack.pop(); // Remove Mercury's Position
 	mStack.push(mStack.top());
-	mStack.top() *= glm::translate(glm::mat4(1.0f), glm::vec3(sin((float)(RandomOrbitLocationMultiplier[Planets::VENUS] + currentTime)*venus_revolution_speed)*venus_distance, 0.0f, cos((float)(RandomOrbitLocationMultiplier[Planets::VENUS] + currentTime)*venus_revolution_speed)*venus_distance));
+	mStack.top() *= glm::translate(glm::mat4(1.0f), glm::vec3(sin((float)(RandomOrbitLocationMultiplier[Planets::VENUS] + currentTime)*Constants::venus_revolution_speed)*Constants::venus_distance, 0.0f, cos((float)(RandomOrbitLocationMultiplier[Planets::VENUS] + currentTime)*Constants::venus_revolution_speed)*Constants::venus_distance));
 	mStack.push(mStack.top());
-	mStack.top() *= glm::rotate(glm::mat4(1.0f), (float)currentTime, glm::vec3(0.0, 1.0, 0.0)) * glm::scale(glm::mat4(1.0f), venus_size * glm::vec3(1.0f, 1.0f, 1.0f)); // Planet Rotation
+	mStack.top() *= glm::rotate(glm::mat4(1.0f), (float)currentTime, glm::vec3(0.0, 1.0, 0.0)) * glm::scale(glm::mat4(1.0f), Constants::venus_size * glm::vec3(1.0f, 1.0f, 1.0f)); // Planet Rotation
 	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mStack.top()));
 	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
 	glBindVertexArray(vao[0]);
@@ -575,9 +514,9 @@ void display(GLFWwindow* window, double currentTime)
 	// --- Mars
 	mStack.pop(); // Remove Mercury's Position
 	mStack.push(mStack.top());
-	mStack.top() *= glm::translate(glm::mat4(1.0f), glm::vec3(sin((float)(RandomOrbitLocationMultiplier[Planets::MARS] + currentTime)*mars_revolution_speed)*mars_distance, 0.0f, cos((float)(RandomOrbitLocationMultiplier[Planets::MARS] + currentTime)*mars_revolution_speed)*mars_distance));
+	mStack.top() *= glm::translate(glm::mat4(1.0f), glm::vec3(sin((float)(RandomOrbitLocationMultiplier[Planets::MARS] + currentTime)*Constants::mars_revolution_speed)*Constants::mars_distance, 0.0f, cos((float)(RandomOrbitLocationMultiplier[Planets::MARS] + currentTime)*Constants::mars_revolution_speed)*Constants::mars_distance));
 	mStack.push(mStack.top());
-	mStack.top() *= glm::rotate(glm::mat4(1.0f), (float)currentTime, glm::vec3(0.0, 1.0, 0.0)) * glm::scale(glm::mat4(1.0f), mars_size * glm::vec3(1.0f, 1.0f, 1.0f)); // Planet Rotation
+	mStack.top() *= glm::rotate(glm::mat4(1.0f), (float)currentTime, glm::vec3(0.0, 1.0, 0.0)) * glm::scale(glm::mat4(1.0f), Constants::mars_size * glm::vec3(1.0f, 1.0f, 1.0f)); // Planet Rotation
 	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mStack.top()));
 	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
 	glBindVertexArray(vao[0]);
@@ -590,9 +529,9 @@ void display(GLFWwindow* window, double currentTime)
 	// --- Jupiter
 	mStack.pop(); // Remove Mars's Position
 	mStack.push(mStack.top());
-	mStack.top() *= glm::translate(glm::mat4(1.0f), glm::vec3(sin((float)(RandomOrbitLocationMultiplier[Planets::JUPITER] + currentTime)*jupiter_revolution_speed)*jupiter_distance, 0.0f, cos((float)(RandomOrbitLocationMultiplier[Planets::JUPITER] + currentTime)*jupiter_revolution_speed)*jupiter_distance));
+	mStack.top() *= glm::translate(glm::mat4(1.0f), glm::vec3(sin((float)(RandomOrbitLocationMultiplier[Planets::JUPITER] + currentTime)*Constants::jupiter_revolution_speed)*Constants::jupiter_distance, 0.0f, cos((float)(RandomOrbitLocationMultiplier[Planets::JUPITER] + currentTime)*Constants::jupiter_revolution_speed)*Constants::jupiter_distance));
 	mStack.push(mStack.top());
-	mStack.top() *= glm::rotate(glm::mat4(1.0f), (float)currentTime, glm::vec3(0.0, 1.0, 0.0)) * glm::scale(glm::mat4(1.0f), jupiter_size * glm::vec3(1.0f, 1.0f, 1.0f)); // Planet Rotation
+	mStack.top() *= glm::rotate(glm::mat4(1.0f), (float)currentTime, glm::vec3(0.0, 1.0, 0.0)) * glm::scale(glm::mat4(1.0f), Constants::jupiter_size * glm::vec3(1.0f, 1.0f, 1.0f)); // Planet Rotation
 	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mStack.top()));
 	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
 	glBindVertexArray(vao[0]);
@@ -606,11 +545,10 @@ void display(GLFWwindow* window, double currentTime)
 	// --- Saturn
 	mStack.pop(); // Remove Jupiter's Position
 	mStack.push(mStack.top());
-	mStack.top() *= glm::translate(glm::mat4(1.0f), glm::vec3(sin((float)(RandomOrbitLocationMultiplier[Planets::SATURN] + currentTime)*saturn_revolution_speed)*saturn_distance, 0.0f, cos((float)(RandomOrbitLocationMultiplier[Planets::SATURN] + currentTime)*saturn_revolution_speed)*saturn_distance));
+	mStack.top() *= glm::translate(glm::mat4(1.0f), glm::vec3(sin((float)(RandomOrbitLocationMultiplier[Planets::SATURN] + currentTime)*Constants::saturn_revolution_speed)*Constants::saturn_distance, 0.0f, cos((float)(RandomOrbitLocationMultiplier[Planets::SATURN] + currentTime)*Constants::saturn_revolution_speed)*Constants::saturn_distance));
 	mStack.push(mStack.top());
-	mStack.top() *= glm::rotate(glm::mat4(1.0f), (float)currentTime, glm::vec3(0.0, 1.0, 0.0)) * glm::scale(glm::mat4(1.0f), saturn_size * glm::vec3(1.0f, 1.0f, 1.0f)); // Planet Rotation
+	mStack.top() *= glm::rotate(glm::mat4(1.0f), (float)currentTime, glm::vec3(0.0, 1.0, 0.0)) * glm::scale(glm::mat4(1.0f), Constants::saturn_size * glm::vec3(1.0f, 1.0f, 1.0f)); // Planet Rotation
 	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mStack.top()));
-	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
 	glBindVertexArray(vao[0]);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, saturnTexture);
@@ -623,11 +561,10 @@ void display(GLFWwindow* window, double currentTime)
 	// --- Urnaus
 	mStack.pop(); // Remove Saturn's Position
 	mStack.push(mStack.top());
-	mStack.top() *= glm::translate(glm::mat4(1.0f), glm::vec3(sin((float)(RandomOrbitLocationMultiplier[Planets::URNAUS] + currentTime)*uranus_revolution_speed)*uranus_distance, 0.0f, cos((float)(RandomOrbitLocationMultiplier[Planets::URNAUS] + currentTime)*uranus_revolution_speed)*uranus_distance));
+	mStack.top() *= glm::translate(glm::mat4(1.0f), glm::vec3(sin((float)(RandomOrbitLocationMultiplier[Planets::URNAUS] + currentTime)*Constants::uranus_revolution_speed)*Constants::uranus_distance, 0.0f, cos((float)(RandomOrbitLocationMultiplier[Planets::URNAUS] + currentTime)*Constants::uranus_revolution_speed)*Constants::uranus_distance));
 	mStack.push(mStack.top());
-	mStack.top() *= glm::rotate(glm::mat4(1.0f), (float)currentTime, glm::vec3(0.0, 1.0, 0.0)) * glm::scale(glm::mat4(1.0f), uranus_size * glm::vec3(1.0f, 1.0f, 1.0f)); // Planet Rotation
+	mStack.top() *= glm::rotate(glm::mat4(1.0f), (float)currentTime, glm::vec3(0.0, 1.0, 0.0)) * glm::scale(glm::mat4(1.0f), Constants::uranus_size * glm::vec3(1.0f, 1.0f, 1.0f)); // Planet Rotation
 	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mStack.top()));
-	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
 	glBindVertexArray(vao[0]);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, urnausTexture);
@@ -639,11 +576,10 @@ void display(GLFWwindow* window, double currentTime)
 	// --- Neptune
 	mStack.pop(); // Remove Uranus's Position
 	mStack.push(mStack.top());
-	mStack.top() *= glm::translate(glm::mat4(1.0f), glm::vec3(sin((float)(RandomOrbitLocationMultiplier[Planets::NEPTUNE] + currentTime)*neptune_revolution_speed)*neptune_distance, 0.0f, cos((float)(RandomOrbitLocationMultiplier[Planets::NEPTUNE] + currentTime)*neptune_revolution_speed)*neptune_distance));
+	mStack.top() *= glm::translate(glm::mat4(1.0f), glm::vec3(sin((float)(RandomOrbitLocationMultiplier[Planets::NEPTUNE] + currentTime)*Constants::neptune_revolution_speed)*Constants::neptune_distance, 0.0f, cos((float)(RandomOrbitLocationMultiplier[Planets::NEPTUNE] + currentTime)*Constants::neptune_revolution_speed)*Constants::neptune_distance));
 	mStack.push(mStack.top());
-	mStack.top() *= glm::rotate(glm::mat4(1.0f), (float)currentTime, glm::vec3(0.0, 1.0, 0.0)) * glm::scale(glm::mat4(1.0f), neptune_size * glm::vec3(1.0f, 1.0f, 1.0f)); // Planet Rotation
+	mStack.top() *= glm::rotate(glm::mat4(1.0f), (float)currentTime, glm::vec3(0.0, 1.0, 0.0)) * glm::scale(glm::mat4(1.0f), Constants::neptune_size * glm::vec3(1.0f, 1.0f, 1.0f)); // Planet Rotation
 	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mStack.top()));
-	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
 	glBindVertexArray(vao[0]);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, neptuneTexture);
@@ -657,95 +593,79 @@ void display(GLFWwindow* window, double currentTime)
 
 	glUseProgram(renderingOrbitProgram);
 
-	// Earth Orbit
-	mMat = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0)) * glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 1.0f, 1.0f));
-	mvMat = vMat * mMat;
-	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mvMat));
+	mvLoc = glGetUniformLocation(renderingOrbitProgram, "mv_matrix");
+	projLoc = glGetUniformLocation(renderingOrbitProgram, "proj_matrix");
 	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
 	glBindVertexArray(vao[1]);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, sunTexture);
+	DrawOrbits(vMat);
+	
+	/*
+	// Earth Orbit
+	mMat = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0)) * glm::scale(glm::mat4(1.0f), Constants::Orbit_Ratios[0] * glm::vec3(1.0f, 1.0f, 1.0f));
+	mvMat = vMat * mMat;
+	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mvMat));
 	glDrawElements(GL_TRIANGLES, orbit.getIndices().size(), GL_UNSIGNED_INT, 0);
 
 
 	// Mercury Orbit
-	mMat = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0)) * glm::scale(glm::mat4(1.0f), (mercury_distance/earth_distance) * glm::vec3(1.0f, 1.0f, 1.0f));
+	mMat = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0)) * glm::scale(glm::mat4(1.0f), Constants::Orbit_Ratios[1] * glm::vec3(1.0f, 1.0f, 1.0f));
 	mvMat = vMat * mMat;
 	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mvMat));
-	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
-	glBindVertexArray(vao[1]);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, sunTexture);
 	glDrawElements(GL_TRIANGLES, orbit.getIndices().size(), GL_UNSIGNED_INT, 0);
 
 	
 	// Venus Orbit
-	mMat = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0)) * glm::scale(glm::mat4(1.0f), (venus_distance/earth_distance) * glm::vec3(1.0f, 1.0f, 1.0f));
+	mMat = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0)) * glm::scale(glm::mat4(1.0f), (Constants::venus_distance/Constants::earth_distance) * glm::vec3(1.0f, 1.0f, 1.0f));
 	mvMat = vMat * mMat;
 	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mvMat));
-	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
-	glBindVertexArray(vao[1]);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, sunTexture);
 	glDrawElements(GL_TRIANGLES, orbit.getIndices().size(), GL_UNSIGNED_INT, 0);
 
 	
 	// Mars Orbit
-	mMat = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0)) * glm::scale(glm::mat4(1.0f), (mars_distance/earth_distance) * glm::vec3(1.0f, 1.0f, 1.0f));
+	mMat = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0)) * glm::scale(glm::mat4(1.0f), (Constants::mars_distance/Constants::earth_distance) * glm::vec3(1.0f, 1.0f, 1.0f));
 	mvMat = vMat * mMat;
 	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mvMat));
-	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
-	glBindVertexArray(vao[1]);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, sunTexture);
 	glDrawElements(GL_TRIANGLES, orbit.getIndices().size(), GL_UNSIGNED_INT, 0);
 
 	// Jupiter Orbit
-	mMat = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0)) * glm::scale(glm::mat4(1.0f), (jupiter_distance/earth_distance) * glm::vec3(1.0f, 1.0f, 1.0f));
+	mMat = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0)) * glm::scale(glm::mat4(1.0f), (Constants::jupiter_distance/Constants::earth_distance) * glm::vec3(1.0f, 1.0f, 1.0f));
 	mvMat = vMat * mMat;
 	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mvMat));
-	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
-	glBindVertexArray(vao[1]);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, sunTexture);
 	glDrawElements(GL_TRIANGLES, orbit.getIndices().size(), GL_UNSIGNED_INT, 0);
 
 	// Saturn Orbit
-	mMat = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0)) * glm::scale(glm::mat4(1.0f), (saturn_distance/earth_distance) * glm::vec3(1.0f, 1.0f, 1.0f));
+	mMat = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0)) * glm::scale(glm::mat4(1.0f), (Constants::saturn_distance/Constants::earth_distance) * glm::vec3(1.0f, 1.0f, 1.0f));
 	mvMat = vMat * mMat;
 	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mvMat));
-	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
-	glBindVertexArray(vao[1]);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, sunTexture);
 	glDrawElements(GL_TRIANGLES, orbit.getIndices().size(), GL_UNSIGNED_INT, 0);
 
 	// Uranus Orbit
-	mMat = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0)) * glm::scale(glm::mat4(1.0f), (uranus_distance/earth_distance) * glm::vec3(1.0f, 1.0f, 1.0f));
+	mMat = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0)) * glm::scale(glm::mat4(1.0f), (Constants::uranus_distance/Constants::earth_distance) * glm::vec3(1.0f, 1.0f, 1.0f));
 	mvMat = vMat * mMat;
 	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mvMat));
-	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
-	glBindVertexArray(vao[1]);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, sunTexture);
 	glDrawElements(GL_TRIANGLES, orbit.getIndices().size(), GL_UNSIGNED_INT, 0);
 
 	// Neptune Orbit
-	mMat = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0)) * glm::scale(glm::mat4(1.0f), (neptune_distance/earth_distance) * glm::vec3(1.0f, 1.0f, 1.0f));
+	mMat = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0)) * glm::scale(glm::mat4(1.0f), (Constants::neptune_distance/Constants::earth_distance) * glm::vec3(1.0f, 1.0f, 1.0f));
 	mvMat = vMat * mMat;
 	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mvMat));
-	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
-	glBindVertexArray(vao[1]);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, sunTexture);
 	glDrawElements(GL_TRIANGLES, orbit.getIndices().size(), GL_UNSIGNED_INT, 0);
-
-
-	
-	
-	
-
+	*/
 }
+
+void DrawOrbits(glm::mat4& vMat)
+{
+	glm::mat4 mMat, mvMat;
+	for(int i = 0; i < NUMBER_OF_PLANETS; i++)
+	{
+		// Earth Orbit
+		mMat = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0)) * glm::scale(glm::mat4(1.0f), Constants::Orbit_Ratios[i] * glm::vec3(1.0f, 1.0f, 1.0f));
+		mvMat = vMat * mMat;
+		glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mvMat));
+		glDrawElements(GL_TRIANGLES, orbit.getIndices().size(), GL_UNSIGNED_INT, 0);
+	}
+}
+
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
