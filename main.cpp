@@ -7,29 +7,18 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include "Utils.h"
-#include "sphere.h"
-#include "camera.h"
-#include "Torus.h"
+#include <omp.h>
 #include <stack>
-#include "Constants.h"
 
-enum Planets
-{
-	MERCURY,
-	VENUS,
-	EARTH,
-	MARS,
-	JUPITER,
-	SATURN,
-	URNAUS,
-	NEPTUNE
-};
+#include "./header_files/Utils.h"
+#include "./header_files/sphere.h"
+#include "./header_files/camera.h"
+#include "./header_files/Torus.h"
+#include "./header_files/Constants.h"
 
 #define numVAOs 3
 #define numVBOs 8
 #define NUMBER_OF_PLANETS 8
-
 
 void setupVertices();
 void init(GLFWwindow* window);
@@ -39,15 +28,11 @@ void GenerateBuffers(GLuint* VAO, GLuint* VBO, GLuint VAO_INITIAL_INDEX, GLuint 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
-void GenerateBuffersOrbit(GLuint* VAO, GLuint* VBO);
 void DrawOrbits(glm::mat4& vMat);
-
-float cameraX, cameraY, cameraZ;
-float sphLocX, sphLocY, sphLocZ;
+void DrawPlanets(glm::mat4& vMat, std::stack<glm::mat4>& mMat, double& currentTime);
 
 const unsigned int SCR_WIDTH = 1280;
 const unsigned int SCR_HEIGHT = 720;
-
 
 // camera
 Camera camera(glm::vec3(0.0f, 0.0f, 200.0f));
@@ -55,7 +40,6 @@ float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
 
-// timing
 float deltaTime = 0.0f;	// time between current frame and last frame
 float lastFrame = 0.0f;
 
@@ -64,8 +48,6 @@ GLuint vao[numVAOs];
 GLuint vbo[numVBOs];
 GLuint skyboxVAO, skyboxVBO;
 
-// allocate variables use in display() function, so that they won't need to be
-// allocated during rendering
 GLuint mLoc,vLoc, mvLoc, projLoc, tfLoc;
 int width, height;
 float aspect;
@@ -76,7 +58,6 @@ GLuint sunTexture, earthTexture, moonTexture, mercuryTexture;
 GLuint venusTexture, marsTexture, jupiterTexture, saturnTexture;
 GLuint urnausTexture, neptuneTexture;
 GLuint cubemapTexture;
-
 
 std::vector<int> ind;
 std::vector<glm::vec3> vert;
@@ -91,8 +72,7 @@ std::stack<glm::mat4> mStack;
 
 Sphere sphere(156);
 
-
-
+std::vector<GLuint> Planet_Textures;
 
 std::vector<float> RandomOrbitLocationMultiplier;
 
@@ -127,7 +107,6 @@ int main()
 
 	init(window);
 
-
 	while(!glfwWindowShouldClose(window))
 	{
 		display(window, glfwGetTime());
@@ -138,8 +117,6 @@ int main()
 	glfwDestroyWindow(window);
 	glfwTerminate();
 	exit(EXIT_SUCCESS);
-
-
 }
 
 void setupVertices()
@@ -150,6 +127,7 @@ void setupVertices()
 	norm = sphere.getNormals();
 
 	int numIndices = sphere.getNumIndices();
+
 	for(int i = 0; i < numIndices; i++)
 	{
 		pvalues.push_back((vert[ind[i]]).x);
@@ -169,7 +147,6 @@ void setupVertices()
 
 	GenerateBuffers(vao, vbo, 0, 0, true);
 
-
 	ind.clear();
 	vert.clear();
 	tex.clear();
@@ -178,14 +155,10 @@ void setupVertices()
 	tvalues.clear();
 	nvalues.clear();
 
-
-
 	ind = orbit.getIndices();
 	vert = orbit.getVertices();
 	tex = orbit.getTexCoords();
 	norm = orbit.getNormals();
-
-
 
 	for (int i = 0; i < orbit.getNumVertices(); i++) {
 		pvalues.push_back(vert[i].x);
@@ -197,7 +170,6 @@ void setupVertices()
 		nvalues.push_back(norm[i].y);
 		nvalues.push_back(norm[i].z);
 	}
-
 
 	GenerateBuffers(vao, vbo, 1, 3, true);
 
@@ -255,38 +227,11 @@ void setupVertices()
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 }
 
-void GenerateBuffersOrbit(GLuint* VAO, GLuint* VBO)
-{
-	glBindVertexArray(VAO[1]);
-	
-	// Put the vertices into buffer #0
-	glBindBuffer(GL_ARRAY_BUFFER, VBO[3]);
-	glBufferData(GL_ARRAY_BUFFER, pvalues.size()*4, &pvalues[0], GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(0);
-
-	// Put the Texture Coordinates into buffer #1
-	glBindBuffer(GL_ARRAY_BUFFER, VBO[4]);
-	glBufferData(GL_ARRAY_BUFFER, tvalues.size()*4, &tvalues[0], GL_STATIC_DRAW);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(1);
-
-	// Put the Normals into buffer #2
-	glBindBuffer(GL_ARRAY_BUFFER, VBO[5]);
-	glBufferData(GL_ARRAY_BUFFER, nvalues.size()*4, &nvalues[0], GL_STATIC_DRAW);
-
-
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, VBO[6]);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, ind.size() * 4, &ind[0], GL_STATIC_DRAW);
-	
-}
 
 void GenerateBuffers(GLuint* VAO, GLuint* VBO, GLuint VAO_INITIAL_INDEX, GLuint VBO_INITIAL_INDEX, bool is_element_array_buffer)
 {
-
 	glBindVertexArray(*(VAO + (VAO_INITIAL_INDEX + 0)));
 	
-
 	// Put the vertices into buffer #0
 	glBindBuffer(GL_ARRAY_BUFFER, *(VBO + (VBO_INITIAL_INDEX + 0)));
 	glBufferData(GL_ARRAY_BUFFER, pvalues.size()*4, &pvalues[0], GL_STATIC_DRAW);
@@ -315,21 +260,15 @@ void GenerateBuffers(GLuint* VAO, GLuint* VBO, GLuint VAO_INITIAL_INDEX, GLuint 
 
 void init(GLFWwindow* window)
 {
-	renderingProgram = Utils::createShaderProgram("vertShader.glsl", "fragShader.glsl");
-	renderingOrbitProgram = Utils::createShaderProgram("vertShader.glsl", "fragShader_Orbit.glsl");
-	skyboxShader = Utils::createShaderProgram("vertShader_Skybox.glsl", "fragShader_Skybox.glsl");
+	renderingProgram = Utils::createShaderProgram("./shaders/vertShader.glsl", "./shaders/fragShader.glsl");
+	renderingOrbitProgram = Utils::createShaderProgram("./shaders/vertShader.glsl", "./shaders/fragShader_Orbit.glsl");
+	skyboxShader = Utils::createShaderProgram("./shaders/vertShader_Skybox.glsl", "./shaders/fragShader_Skybox.glsl");
 
 	glfwGetFramebufferSize(window, &width, &height);
 	aspect = (float)width / (float)height;
 	pMat = glm::perspective(1.0472f, aspect, 0.1f, 50000.0f);
 
-	cameraX = 0.0f; cameraY = 0.0f; cameraZ = 2.0f;
-	sphLocX = 0.0f; sphLocY = 0.0f; sphLocZ = 0.0f;
-
-	//vMat = glm::translate(glm::mat4(1.0f), glm::vec3(-cameraX, -cameraY, -cameraZ));
-
 	setupVertices();
-
 
 	sunTexture = Utils::loadTexture("./textures/sun.jpg");
 	earthTexture = Utils::loadTexture("./textures/earth.jpg");
@@ -342,18 +281,12 @@ void init(GLFWwindow* window)
 	urnausTexture = Utils::loadTexture("./textures/uranus.jpg");
 	neptuneTexture = Utils::loadTexture("./textures/neptune.jpg");
 
-	/*
-	std::vector<std::string> faces
-	{
-		"./textures/skybox/Stars/Stars_right.jpg",
-		"./textures/skybox/Stars/Stars_left.jpg",
-		"./textures/skybox/Stars/Stars_top.jpg",
-		"./textures/skybox/Stars/Stars_bottom.jpg",
-		"./textures/skybox//Stars/Stars_front.jpg",
-		"./textures/skybox/Stars/Stars_back.jpg"
-	};
-	*/
-	
+	Planet_Textures.push_back(sunTexture); Planet_Textures.push_back(earthTexture);
+	Planet_Textures.push_back(moonTexture); Planet_Textures.push_back(mercuryTexture);
+	Planet_Textures.push_back(venusTexture); Planet_Textures.push_back(marsTexture);
+	Planet_Textures.push_back(jupiterTexture); Planet_Textures.push_back(saturnTexture);
+	Planet_Textures.push_back(urnausTexture); Planet_Textures.push_back(neptuneTexture);
+
 	std::vector<std::string> faces
 	{
 		"./textures/skybox/Nebula/Nebula_right.jpg",
@@ -367,7 +300,6 @@ void init(GLFWwindow* window)
 
 	cubemapTexture = Utils::loadCubemap(faces);
 
-
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LEQUAL);
 
@@ -380,8 +312,13 @@ void init(GLFWwindow* window)
 	srand (static_cast <unsigned> (time(0)));
 	float r;
 
-	for(int i = 0; i < NUMBER_OF_PLANETS; i++)
+	for(int i = 0; i < NUMBER_OF_PLANETS + 2; i++)
 	{
+		if(i == 0) // Sun
+		{
+			RandomOrbitLocationMultiplier.push_back(0);
+			continue;
+		}
 		r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX/7.0f);
 		RandomOrbitLocationMultiplier.push_back(r);
 	}
@@ -406,11 +343,11 @@ void display(GLFWwindow* window, double currentTime)
 	glClear(GL_DEPTH_BUFFER_BIT);
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	
 	// camera/view transformation
 	vMat = camera.GetViewMatrix();
 	vMat = glm::mat4(glm::mat3(camera.GetViewMatrix())); // remove translation from the view matrix
-	// draw cube map
+
+	// Draw Cube Map
 	glUseProgram(skyboxShader);
 	vLoc = glGetUniformLocation(skyboxShader, "vMat");
 	glUniformMatrix4fv(vLoc, 1, GL_FALSE, glm::value_ptr(vMat));
@@ -428,242 +365,78 @@ void display(GLFWwindow* window, double currentTime)
 	glDrawArrays(GL_TRIANGLES, 0, 36);
 	glEnable(GL_DEPTH_TEST);
 
+	// Render Planets and Moon
 	glUseProgram(renderingProgram);
-
 	mvLoc = glGetUniformLocation(renderingProgram, "mv_matrix");
 	projLoc = glGetUniformLocation(renderingProgram, "proj_matrix");
-
-
 	vMat = camera.GetViewMatrix();	
-
 	// Push View Matrix onto the stack
 	mStack.push(vMat);
-
-	// --- Sun
-	mStack.push(mStack.top());
-	mStack.top() *= glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)); // Sun Position
-	mStack.push(mStack.top());
-	mStack.top() *= glm::rotate(glm::mat4(1.0f), (float)currentTime, glm::vec3(0.0f, 1.0f, 0.0f)) * glm::scale(glm::mat4(1.0f), Constants::sun_size * glm::vec3(1.0f, 1.0f, 1.0f)); // Sun Position and Scaling
-	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mStack.top()));
-	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
 	glBindVertexArray(vao[0]);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, sunTexture);
-	glDrawArrays(GL_TRIANGLES, 0, sphere.getNumIndices());
-	mStack.pop();
+	DrawPlanets(vMat, mStack, currentTime);
 
-	// --- Earth
-	mStack.push(mStack.top());
-	mStack.top() *= glm::translate(glm::mat4(1.0f), glm::vec3(sin((float)(RandomOrbitLocationMultiplier[Planets::EARTH] + currentTime)*Constants::earth_revolution_speed)*Constants::earth_distance, 0.0f, cos((float)((RandomOrbitLocationMultiplier[Planets::EARTH] + currentTime))*Constants::earth_revolution_speed)*Constants::earth_distance));
-	mStack.push(mStack.top());
-	mStack.top() *= glm::rotate(glm::mat4(1.0f), (float)currentTime, glm::vec3(0.0, 1.0, 0.0)) * glm::scale(glm::mat4(1.0f), Constants::earth_size * glm::vec3(1.0f, 1.0f, 1.0f)); // Planet Rotation
-	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mStack.top()));
-	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
-	glBindVertexArray(vao[0]);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, earthTexture);
-	glDrawArrays(GL_TRIANGLES, 0, sphere.getNumIndices());
-	mStack.pop();
-
-
-
-	// --- Moon
-	mStack.push(mStack.top());
-	mStack.top() *= glm::translate(glm::mat4(1.0f), glm::vec3(sin((float)currentTime)*Constants::moon_distance, 0.0f, cos((float)currentTime)*Constants::moon_distance));
-	mStack.push(mStack.top());
-	mStack.top() *= glm::rotate(glm::mat4(1.0f), (float)currentTime, glm::vec3(0.0, 1.0, 0.0)) * glm::scale(glm::mat4(1.0f), Constants::moon_size * glm::vec3(1.0f, 1.0f, 1.0f)); // Planet Rotation
-	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mStack.top()));
-	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
-	glBindVertexArray(vao[0]);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, moonTexture);
-	glDrawArrays(GL_TRIANGLES, 0, sphere.getNumIndices());
-	mStack.pop();
-
-	// --- Mercury
-	mStack.pop(); // Remove Moon's Position
-	mStack.pop(); // Remove Earth's Position
-	mStack.push(mStack.top());
-	mStack.top() *= glm::translate(glm::mat4(1.0f), glm::vec3(sin((float)(RandomOrbitLocationMultiplier[Planets::MERCURY] + currentTime)*Constants::mercury_revolution_speed)*Constants::mercury_distance, 0.0f, cos((float)(RandomOrbitLocationMultiplier[Planets::MERCURY] + currentTime)*Constants::mercury_revolution_speed)*Constants::mercury_distance));
-	mStack.push(mStack.top());
-	mStack.top() *= glm::rotate(glm::mat4(1.0f), (float)currentTime, glm::vec3(0.0, 1.0, 0.0)) * glm::scale(glm::mat4(1.0f), Constants::mercury_size * glm::vec3(1.0f, 1.0f, 1.0f)); // Planet Rotation
-	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mStack.top()));
-	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
-	glBindVertexArray(vao[0]);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, mercuryTexture);
-	glDrawArrays(GL_TRIANGLES, 0, sphere.getNumIndices());
-	mStack.pop();
-
-
-	// --- Venus
-	mStack.pop(); // Remove Mercury's Position
-	mStack.push(mStack.top());
-	mStack.top() *= glm::translate(glm::mat4(1.0f), glm::vec3(sin((float)(RandomOrbitLocationMultiplier[Planets::VENUS] + currentTime)*Constants::venus_revolution_speed)*Constants::venus_distance, 0.0f, cos((float)(RandomOrbitLocationMultiplier[Planets::VENUS] + currentTime)*Constants::venus_revolution_speed)*Constants::venus_distance));
-	mStack.push(mStack.top());
-	mStack.top() *= glm::rotate(glm::mat4(1.0f), (float)currentTime, glm::vec3(0.0, 1.0, 0.0)) * glm::scale(glm::mat4(1.0f), Constants::venus_size * glm::vec3(1.0f, 1.0f, 1.0f)); // Planet Rotation
-	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mStack.top()));
-	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
-	glBindVertexArray(vao[0]);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, venusTexture);
-	glDrawArrays(GL_TRIANGLES, 0, sphere.getNumIndices());
-	mStack.pop();
-
-
-	// --- Mars
-	mStack.pop(); // Remove Mercury's Position
-	mStack.push(mStack.top());
-	mStack.top() *= glm::translate(glm::mat4(1.0f), glm::vec3(sin((float)(RandomOrbitLocationMultiplier[Planets::MARS] + currentTime)*Constants::mars_revolution_speed)*Constants::mars_distance, 0.0f, cos((float)(RandomOrbitLocationMultiplier[Planets::MARS] + currentTime)*Constants::mars_revolution_speed)*Constants::mars_distance));
-	mStack.push(mStack.top());
-	mStack.top() *= glm::rotate(glm::mat4(1.0f), (float)currentTime, glm::vec3(0.0, 1.0, 0.0)) * glm::scale(glm::mat4(1.0f), Constants::mars_size * glm::vec3(1.0f, 1.0f, 1.0f)); // Planet Rotation
-	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mStack.top()));
-	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
-	glBindVertexArray(vao[0]);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, marsTexture);
-	glDrawArrays(GL_TRIANGLES, 0, sphere.getNumIndices());
-	mStack.pop();
-
-
-	// --- Jupiter
-	mStack.pop(); // Remove Mars's Position
-	mStack.push(mStack.top());
-	mStack.top() *= glm::translate(glm::mat4(1.0f), glm::vec3(sin((float)(RandomOrbitLocationMultiplier[Planets::JUPITER] + currentTime)*Constants::jupiter_revolution_speed)*Constants::jupiter_distance, 0.0f, cos((float)(RandomOrbitLocationMultiplier[Planets::JUPITER] + currentTime)*Constants::jupiter_revolution_speed)*Constants::jupiter_distance));
-	mStack.push(mStack.top());
-	mStack.top() *= glm::rotate(glm::mat4(1.0f), (float)currentTime, glm::vec3(0.0, 1.0, 0.0)) * glm::scale(glm::mat4(1.0f), Constants::jupiter_size * glm::vec3(1.0f, 1.0f, 1.0f)); // Planet Rotation
-	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mStack.top()));
-	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
-	glBindVertexArray(vao[0]);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, jupiterTexture);
-	glDrawArrays(GL_TRIANGLES, 0, sphere.getNumIndices());
-	mStack.pop();
-
-
-
-	// --- Saturn
-	mStack.pop(); // Remove Jupiter's Position
-	mStack.push(mStack.top());
-	mStack.top() *= glm::translate(glm::mat4(1.0f), glm::vec3(sin((float)(RandomOrbitLocationMultiplier[Planets::SATURN] + currentTime)*Constants::saturn_revolution_speed)*Constants::saturn_distance, 0.0f, cos((float)(RandomOrbitLocationMultiplier[Planets::SATURN] + currentTime)*Constants::saturn_revolution_speed)*Constants::saturn_distance));
-	mStack.push(mStack.top());
-	mStack.top() *= glm::rotate(glm::mat4(1.0f), (float)currentTime, glm::vec3(0.0, 1.0, 0.0)) * glm::scale(glm::mat4(1.0f), Constants::saturn_size * glm::vec3(1.0f, 1.0f, 1.0f)); // Planet Rotation
-	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mStack.top()));
-	glBindVertexArray(vao[0]);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, saturnTexture);
-	glDrawArrays(GL_TRIANGLES, 0, sphere.getNumIndices());
-	mStack.pop();
-
-
-
-	
-	// --- Urnaus
-	mStack.pop(); // Remove Saturn's Position
-	mStack.push(mStack.top());
-	mStack.top() *= glm::translate(glm::mat4(1.0f), glm::vec3(sin((float)(RandomOrbitLocationMultiplier[Planets::URNAUS] + currentTime)*Constants::uranus_revolution_speed)*Constants::uranus_distance, 0.0f, cos((float)(RandomOrbitLocationMultiplier[Planets::URNAUS] + currentTime)*Constants::uranus_revolution_speed)*Constants::uranus_distance));
-	mStack.push(mStack.top());
-	mStack.top() *= glm::rotate(glm::mat4(1.0f), (float)currentTime, glm::vec3(0.0, 1.0, 0.0)) * glm::scale(glm::mat4(1.0f), Constants::uranus_size * glm::vec3(1.0f, 1.0f, 1.0f)); // Planet Rotation
-	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mStack.top()));
-	glBindVertexArray(vao[0]);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, urnausTexture);
-	glDrawArrays(GL_TRIANGLES, 0, sphere.getNumIndices());
-	mStack.pop();
-
-
-
-	// --- Neptune
-	mStack.pop(); // Remove Uranus's Position
-	mStack.push(mStack.top());
-	mStack.top() *= glm::translate(glm::mat4(1.0f), glm::vec3(sin((float)(RandomOrbitLocationMultiplier[Planets::NEPTUNE] + currentTime)*Constants::neptune_revolution_speed)*Constants::neptune_distance, 0.0f, cos((float)(RandomOrbitLocationMultiplier[Planets::NEPTUNE] + currentTime)*Constants::neptune_revolution_speed)*Constants::neptune_distance));
-	mStack.push(mStack.top());
-	mStack.top() *= glm::rotate(glm::mat4(1.0f), (float)currentTime, glm::vec3(0.0, 1.0, 0.0)) * glm::scale(glm::mat4(1.0f), Constants::neptune_size * glm::vec3(1.0f, 1.0f, 1.0f)); // Planet Rotation
-	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mStack.top()));
-	glBindVertexArray(vao[0]);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, neptuneTexture);
-	glDrawArrays(GL_TRIANGLES, 0, sphere.getNumIndices());
-	mStack.pop();
-
-	// Remove Last Planet's Position, Sun's Position and View Matrix
-	mStack.pop();
-	mStack.pop();
-	mStack.pop();
-
+	// Render Orbits
 	glUseProgram(renderingOrbitProgram);
-
 	mvLoc = glGetUniformLocation(renderingOrbitProgram, "mv_matrix");
 	projLoc = glGetUniformLocation(renderingOrbitProgram, "proj_matrix");
 	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
 	glBindVertexArray(vao[1]);
 	DrawOrbits(vMat);
-	
-	/*
-	// Earth Orbit
-	mMat = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0)) * glm::scale(glm::mat4(1.0f), Constants::Orbit_Ratios[0] * glm::vec3(1.0f, 1.0f, 1.0f));
-	mvMat = vMat * mMat;
-	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mvMat));
-	glDrawElements(GL_TRIANGLES, orbit.getIndices().size(), GL_UNSIGNED_INT, 0);
-
-
-	// Mercury Orbit
-	mMat = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0)) * glm::scale(glm::mat4(1.0f), Constants::Orbit_Ratios[1] * glm::vec3(1.0f, 1.0f, 1.0f));
-	mvMat = vMat * mMat;
-	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mvMat));
-	glDrawElements(GL_TRIANGLES, orbit.getIndices().size(), GL_UNSIGNED_INT, 0);
-
-	
-	// Venus Orbit
-	mMat = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0)) * glm::scale(glm::mat4(1.0f), (Constants::venus_distance/Constants::earth_distance) * glm::vec3(1.0f, 1.0f, 1.0f));
-	mvMat = vMat * mMat;
-	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mvMat));
-	glDrawElements(GL_TRIANGLES, orbit.getIndices().size(), GL_UNSIGNED_INT, 0);
-
-	
-	// Mars Orbit
-	mMat = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0)) * glm::scale(glm::mat4(1.0f), (Constants::mars_distance/Constants::earth_distance) * glm::vec3(1.0f, 1.0f, 1.0f));
-	mvMat = vMat * mMat;
-	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mvMat));
-	glDrawElements(GL_TRIANGLES, orbit.getIndices().size(), GL_UNSIGNED_INT, 0);
-
-	// Jupiter Orbit
-	mMat = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0)) * glm::scale(glm::mat4(1.0f), (Constants::jupiter_distance/Constants::earth_distance) * glm::vec3(1.0f, 1.0f, 1.0f));
-	mvMat = vMat * mMat;
-	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mvMat));
-	glDrawElements(GL_TRIANGLES, orbit.getIndices().size(), GL_UNSIGNED_INT, 0);
-
-	// Saturn Orbit
-	mMat = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0)) * glm::scale(glm::mat4(1.0f), (Constants::saturn_distance/Constants::earth_distance) * glm::vec3(1.0f, 1.0f, 1.0f));
-	mvMat = vMat * mMat;
-	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mvMat));
-	glDrawElements(GL_TRIANGLES, orbit.getIndices().size(), GL_UNSIGNED_INT, 0);
-
-	// Uranus Orbit
-	mMat = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0)) * glm::scale(glm::mat4(1.0f), (Constants::uranus_distance/Constants::earth_distance) * glm::vec3(1.0f, 1.0f, 1.0f));
-	mvMat = vMat * mMat;
-	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mvMat));
-	glDrawElements(GL_TRIANGLES, orbit.getIndices().size(), GL_UNSIGNED_INT, 0);
-
-	// Neptune Orbit
-	mMat = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0)) * glm::scale(glm::mat4(1.0f), (Constants::neptune_distance/Constants::earth_distance) * glm::vec3(1.0f, 1.0f, 1.0f));
-	mvMat = vMat * mMat;
-	glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mvMat));
-	glDrawElements(GL_TRIANGLES, orbit.getIndices().size(), GL_UNSIGNED_INT, 0);
-	*/
 }
 
 void DrawOrbits(glm::mat4& vMat)
 {
 	glm::mat4 mMat, mvMat;
+
+	#pragma parallel for private(mMat, mvMat)
 	for(int i = 0; i < NUMBER_OF_PLANETS; i++)
 	{
-		// Earth Orbit
 		mMat = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0)) * glm::scale(glm::mat4(1.0f), Constants::Orbit_Ratios[i] * glm::vec3(1.0f, 1.0f, 1.0f));
 		mvMat = vMat * mMat;
 		glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mvMat));
 		glDrawElements(GL_TRIANGLES, orbit.getIndices().size(), GL_UNSIGNED_INT, 0);
 	}
+}
+
+void DrawPlanets(glm::mat4& vMat, std::stack<glm::mat4>& mMat, double& currentTime)
+{
+	for(int i = 0; i < NUMBER_OF_PLANETS + 2; i++)
+	{
+		if(i <  3) // Sun, Earth and Moon
+		{
+			mStack.push(mStack.top());
+			mStack.top() *= glm::translate(glm::mat4(1.0f), glm::vec3(sin((float)(RandomOrbitLocationMultiplier[i] + currentTime)*Constants::Planet_Revolution_Speeds[i])*Constants::Planet_Distances[i] , 0.0f, cos((float)((RandomOrbitLocationMultiplier[i] + currentTime))*Constants::Planet_Revolution_Speeds[i])*Constants::Planet_Distances[i]));
+			mStack.push(mStack.top());
+			mStack.top() *= glm::rotate(glm::mat4(1.0f), (float)currentTime, glm::vec3(0.0, 1.0, 0.0)) * glm::scale(glm::mat4(1.0f), Constants::Planet_Sizes[i] * glm::vec3(1.0f, 1.0f, 1.0f)); // Planet Rotation
+		}else if(i == 3) // Mercury
+		{
+			mStack.pop(); // Remove Moon's Position
+			mStack.pop(); // Remove Earth's Position
+			mStack.push(mStack.top());
+			mStack.top() *= glm::translate(glm::mat4(1.0f), glm::vec3(sin((float)(RandomOrbitLocationMultiplier[i] + currentTime)*Constants::Planet_Revolution_Speeds[i])*Constants::Planet_Distances[i] , 0.0f, cos((float)(RandomOrbitLocationMultiplier[i] + currentTime)*Constants::Planet_Revolution_Speeds[i])*Constants::Planet_Distances[i]));
+			mStack.push(mStack.top());
+			mStack.top() *= glm::rotate(glm::mat4(1.0f), (float)currentTime, glm::vec3(0.0, 1.0, 0.0)) * glm::scale(glm::mat4(1.0f), Constants::Planet_Sizes[i] * glm::vec3(1.0f, 1.0f, 1.0f)); // Planet Rotation
+		}else // Remaining Planets
+		{	
+			mStack.pop(); // Remove Previous Planet's Position
+			mStack.push(mStack.top());
+			mStack.top() *= glm::translate(glm::mat4(1.0f), glm::vec3(sin((float)(RandomOrbitLocationMultiplier[i] + currentTime)*Constants::Planet_Revolution_Speeds[i])*Constants::Planet_Distances[i] , 0.0f, cos((float)(RandomOrbitLocationMultiplier[i] + currentTime)*Constants::Planet_Revolution_Speeds[i])*Constants::Planet_Distances[i]));
+			mStack.push(mStack.top());
+			mStack.top() *= glm::rotate(glm::mat4(1.0f), (float)currentTime, glm::vec3(0.0, 1.0, 0.0)) * glm::scale(glm::mat4(1.0f), Constants::Planet_Sizes[i] * glm::vec3(1.0f, 1.0f, 1.0f)); // Planet Rotation
+		}
+
+		glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mStack.top()));
+		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(pMat));
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, Planet_Textures[i]);
+		glDrawArrays(GL_TRIANGLES, 0, sphere.getNumIndices());
+		mStack.pop();
+	}
+
+	// Remove Last Planet's Position, Sun's Position and View Matrix
+	mStack.pop();
+	mStack.pop();
+	mStack.pop();
 }
 
 

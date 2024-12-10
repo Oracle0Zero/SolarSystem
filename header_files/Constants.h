@@ -1,3 +1,5 @@
+#pragma once
+
 #include <vector>
 
 namespace Constants
@@ -5,6 +7,8 @@ namespace Constants
     
     constexpr float sun_radius = 695700000;
     constexpr float sun_size = 100.0f; // --- 
+    constexpr float sun_revolution_speed = 1.0f;
+    constexpr float sun_distance = 0.0f;
 
     constexpr float earth_radius = 6378.137f;
     //constexpr float earth_size = earth_radius * (sun_size / sun_radius);
@@ -17,6 +21,8 @@ namespace Constants
     constexpr float moon_radius = 1738.1f;
     constexpr float moon_size = moon_radius * (earth_size / earth_radius);
     constexpr float moon_distance = 15.0f;
+    constexpr float moon_year =  27.3f;
+    constexpr float moon_revolution_speed = earth_revolution_speed * (earth_year / moon_year);
 
     constexpr float mercury_radius = 2439.137f;
     constexpr float mercury_size = mercury_radius * (earth_size / earth_radius);
@@ -67,5 +73,20 @@ namespace Constants
     constexpr float neptune_year = 60190.0f;
     constexpr float neptune_revolution_speed = earth_revolution_speed * (earth_year / neptune_year);
 
-    const std::vector<float> Orbit_Ratios{1.0f, mercury_distance/earth_distance, venus_distance/earth_distance, mars_distance/earth_distance, jupiter_distance/earth_distance, saturn_distance/earth_distance, uranus_distance/earth_distance, neptune_distance/earth_distance};
+    const std::vector<float> Orbit_Ratios{1.0f, mercury_distance/earth_distance, \
+    venus_distance/earth_distance, mars_distance/earth_distance, \
+    jupiter_distance/earth_distance, saturn_distance/earth_distance, \
+    uranus_distance/earth_distance, neptune_distance/earth_distance};
+
+    const std::vector<float> Planet_Sizes{sun_size, earth_size, moon_size, mercury_size, \
+    venus_size, mars_size, jupiter_size, saturn_size, uranus_size, neptune_size};
+
+    const std::vector<float> Planet_Revolution_Speeds{sun_revolution_speed, earth_revolution_speed, \
+    moon_revolution_speed, mercury_revolution_speed, venus_revolution_speed, \
+    mars_revolution_speed, jupiter_revolution_speed, saturn_revolution_speed, \
+    uranus_revolution_speed, neptune_revolution_speed};
+
+    const std::vector<float> Planet_Distances{sun_distance, earth_distance, moon_distance, \
+    mercury_distance, venus_distance, mars_distance, jupiter_distance, \
+    saturn_distance, uranus_distance, neptune_distance};
 }

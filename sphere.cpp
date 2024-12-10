@@ -2,7 +2,7 @@
 #include <vector>
 #include <iostream>
 #include <glm/glm.hpp>
-#include "sphere.h"
+#include "./header_files/sphere.h"
 
 using namespace std;
 
