@@ -9,6 +9,7 @@
 *.exe
 *.out
 *.app
+*.exec
 
 
 # Compiled Dynamic libraries
