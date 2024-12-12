@@ -2,7 +2,7 @@
 #include <vector>
 #include <iostream>
 #include <glm/gtc/matrix_transform.hpp>
-#include "./header_files/Torus.h"
+#include "../include/Torus.h"
 using namespace std;
 
 Torus::Torus() {

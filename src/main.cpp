@@ -10,11 +10,11 @@
 #include <omp.h>
 #include <stack>
 
-#include "./header_files/Utils.h"
-#include "./header_files/sphere.h"
-#include "./header_files/camera.h"
-#include "./header_files/Torus.h"
-#include "./header_files/Constants.h"
+#include "../include/Utils.h"
+#include "../include/sphere.h"
+#include "../include/camera.h"
+#include "../include/Torus.h"
+#include "../include/Constants.h"
 
 #define numVAOs 3
 #define numVBOs 8

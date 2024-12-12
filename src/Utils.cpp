@@ -8,10 +8,10 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp> // glm::value_ptr
 #include <glm/gtc/matrix_transform.hpp> // glm::translate, glm::rotate, glm::scale, glm::perspective
-#include "./header_files/Utils.h"
+#include "../include/Utils.h"
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "./header_files/stb_image.h"
+#include "../include/stb_image.h"
 
 using namespace std;
 
